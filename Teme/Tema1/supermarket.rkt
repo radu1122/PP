@@ -87,5 +87,30 @@
   (if (null? requests)
       (list C1 C2 C3 C4)
       (match (car requests)
-        [(list 'delay index minutes) 'your-code-here]
-        [(list name n-items)         'your-code-here])))
+        [(list 'delay index minutes) (cond
+                                       [(equal? index 1) (serve (cdr requests) (tt+ C1 minutes) C2 C3 C4)]
+                                       [(equal? index 2) (serve (cdr requests) C1 (tt+ C2 minutes) C3 C4)]
+                                       [(equal? index 3) (serve (cdr requests) C1 C2 (tt+ C3 minutes) C4)]
+                                       [(equal? index 4) (serve (cdr requests) C1 C2 C3 (tt+ C4 minutes))]
+
+                                      )]
+        [(list name n-items) (if (<= n-items ITEMS)
+                                 (cond
+                                       [(equal? (car (min-tt (list C1 C2 C3 C4))) 1) (serve (cdr requests) (add-to-counter C1 name n-items) C2 C3 C4)]
+                                       [(equal? (car (min-tt (list C1 C2 C3 C4))) 2) (serve (cdr requests) C1 (add-to-counter C2 name n-items) C3 C4)]
+                                       [(equal? (car (min-tt (list C1 C2 C3 C4))) 3) (serve (cdr requests) C1 C2 (add-to-counter C3 name n-items) C4)]
+                                       [(equal? (car (min-tt (list C1 C2 C3 C4))) 4) (serve (cdr requests) C1 C2 C3 (add-to-counter C4 name n-items))]
+
+                                      )
+                                 (cond
+                                       [(equal? (car (min-tt (list C2 C3 C4))) 2) (serve (cdr requests) C1 (add-to-counter C2 name n-items) C3 C4)]
+                                       [(equal? (car (min-tt (list C2 C3 C4))) 3) (serve (cdr requests) C1 C2 (add-to-counter C3 name n-items) C4)]
+                                       [(equal? (car (min-tt (list C2 C3 C4))) 4) (serve (cdr requests) C1 C2 C3 (add-to-counter C4 name n-items))]
+
+                                      )
+
+
+
+                                 )
+
+         ])))
