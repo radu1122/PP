@@ -156,7 +156,14 @@
 ; => la nevoie veți adăuga întâi casa 16, apoi casa 17, etc.
 ; (puteți determina matematic de câte case noi este nevoie sau
 ;  puteți adăuga recursiv una câte una până când condiția este îndeplinită)
+(define C1 (empty-counter 1))
 
+(define (counters-tt-map counters)
+  (cond
+    ((null? counters) (list 0))
+    ((counter? counters) (list (counter-tt counters)))
+  (else (append (list (counter-tt (car counters))) (counters-tt-map (cdr counters)))))
+)
 
 
 
@@ -165,6 +172,10 @@
   (if (null? requests)
       (append fast-counters slow-counters)
       (match (car requests)
+        [(list 'ensure average) (if (> ( / (apply + (counters-tt-map (append fast-counters slow-counters))) (- (length(counters-tt-map (append fast-counters slow-counters))) 1)) average)
+                                    (serve requests fast-counters (append slow-counters (list (empty-counter (length(counters-tt-map (append fast-counters slow-counters)))))))
+                                    (serve (cdr requests) fast-counters slow-counters)
+                                    )]
         [(list 'delay index minutes) (serve (cdr requests) (update (et+ minutes) (update (tt+ minutes) fast-counters index) index)    (update (et+ minutes) (update (tt+ minutes) slow-counters index) index))]
         [(list name n-items) (if (<= n-items ITEMS)
                                  (serve (cdr requests) (update (add-to-counter name n-items) fast-counters (car (min-tt (append fast-counters slow-counters))))    (update (add-to-counter name n-items) slow-counters (car (min-tt (append fast-counters slow-counters)))) )
@@ -173,13 +184,6 @@
         [(list 'remove-first)  (if (equal? (min-et (append fast-counters slow-counters)) 0)
                                    (serve (cdr requests) fast-counters slow-counters)
                                    (serve (cdr requests) (update remove-first-from-counter fast-counters (car (min-et (append fast-counters slow-counters)))) (update remove-first-from-counter slow-counters (car (min-et (append fast-counters slow-counters))))))]
-        [(list 'ensure average) (if (> (apply + (map (lambda (x)(counter-tt (cdr x))) (append fast-counters slow-counters))) average)
-                                    (serve (cdr requests) fast-counters (append slow-counters (empty-counter (length (append fast-counters slow-counters)))))
-                                    (serve (cdr requests) fast-counters slow-counters)
-                                    )]
+
       )
    ))
-(define C1 (empty-counter 1))
-(serve '((ensure 10) (ensure 5))
-           (list C1)
-           (list (counter 2 12 12 '((ana . 12))) (counter 3 10 6 '((geo . 6) (mia . 4))) (counter 4 6 6 '())))
