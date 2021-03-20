@@ -91,16 +91,20 @@
 ; - indexul casei (din listă) care are cel mai mic et
 ; - et-ul acesteia
 ; (când mai multe case au același et, este preferată casa cu indexul cel mai mic)
-(define (minimum-main f counters min)
+(define (minimum-main f counters min emptyCare)
   (cond
     ((null? counters) min)
-    ((< (f (car counters)) (cdr min))
-     (minimum-main f (cdr counters) (cons (counter-index (car counters)) (f (car counters)))))
+    ((< (f (car counters)) (cdr min)) (if (equal? emptyCare 1)
+                                        (if (null? (counter-queue (car counters)))
+                                            (minimum-main f (cdr counters) min emptyCare)
+                                            (minimum-main f (cdr counters) (cons (counter-index (car counters)) (f (car counters))) emptyCare)
+                                         )
+                                       (minimum-main f (cdr counters) (cons (counter-index (car counters)) (f (car counters))) emptyCare)))
     (else
-     (minimum-main f (cdr counters) min))))
+     (minimum-main f (cdr counters) min emptyCare))))
 
-(define (min-tt counters) (minimum-main counter-tt (cdr counters) (cons (counter-index (car counters)) (counter-tt (car counters))))) ; folosind funcția de mai sus
-(define (min-et counters) (minimum-main counter-et (cdr counters) (cons (counter-index (car counters)) (counter-et (car counters))))) ; folosind funcția de mai sus
+(define (min-tt counters) (minimum-main counter-tt counters (cons 0 100000000) 0)) ; folosind funcția de mai sus
+(define (min-et counters) (minimum-main counter-et counters (cons 0 100000000) 1)) ; folosind funcția de mai sus
 
 
 
@@ -118,11 +122,11 @@
   )
 
 (define (remove-first-from-counter C)
-  (if (null? (cdr (counter-queue C)))
-      (struct-copy counter C [tt 0] [et 0] [queue '()])
-      (struct-copy counter C [tt (tt-sum (cdr (counter-queue C)))] [et ( cdr (car (cdr (counter-queue C))))] [queue (cdr (counter-queue C))])
+  (cond ((null? (counter-queue C)) (struct-copy counter C [tt 0] [et 0] [queue '()]))
+    ((null? (cdr (counter-queue C))) (struct-copy counter C [tt 0] [et 0] [queue '()]))
+        
+      (else (struct-copy counter C [tt (tt-sum (cdr (counter-queue C)))] [et ( cdr (car (cdr (counter-queue C))))] [queue (cdr (counter-queue C))]))
   ))
-    
 
 ; TODO
 ; Implementați funcția care simulează fluxul clienților pe la case.
@@ -162,12 +166,20 @@
       (append fast-counters slow-counters)
       (match (car requests)
         [(list 'delay index minutes) (serve (cdr requests) (update (et+ minutes) (update (tt+ minutes) fast-counters index) index)    (update (et+ minutes) (update (tt+ minutes) slow-counters index) index))]
-        [(list name n-items) (serve (cdr requests) fast-counters slow-counters)]
-        [(list 'remove-first) (serve (cdr requests) (update remove-first-from-counter fast-counters (car (min-tt (append fast-counters slow-counters)))) (update remove-first-from-counter slow-counters (car (min-tt (append fast-counters slow-counters)))))]
+        [(list name n-items) (if (<= n-items ITEMS)
+                                 (serve (cdr requests) (update (add-to-counter name n-items) fast-counters (car (min-tt (append fast-counters slow-counters))))    (update (add-to-counter name n-items) slow-counters (car (min-tt (append fast-counters slow-counters)))) )
+                                 (serve (cdr requests) fast-counters    (update (add-to-counter name n-items) slow-counters (car (min-tt slow-counters))) )
+                                 )]
+        [(list 'remove-first)  (if (equal? (min-et (append fast-counters slow-counters)) 0)
+                                   (serve (cdr requests) fast-counters slow-counters)
+                                   (serve (cdr requests) (update remove-first-from-counter fast-counters (car (min-et (append fast-counters slow-counters)))) (update remove-first-from-counter slow-counters (car (min-et (append fast-counters slow-counters))))))]
         [(list 'ensure average) (if (> (apply + (map (lambda (x)(counter-tt (cdr x))) (append fast-counters slow-counters))) average)
                                     (serve (cdr requests) fast-counters (append slow-counters (empty-counter (length (append fast-counters slow-counters)))))
                                     (serve (cdr requests) fast-counters slow-counters)
                                     )]
       )
    ))
-
+(define C1 (empty-counter 1))
+(serve '((ensure 10) (ensure 5))
+           (list C1)
+           (list (counter 2 12 12 '((ana . 12))) (counter 3 10 6 '((geo . 6) (mia . 4))) (counter 4 6 6 '())))
