@@ -33,29 +33,64 @@
 ; - top
 ; Obs: Doar câteva funcții vor necesita actualizări.
 (define (empty-counter index)           ; testată de checker
-  'your-code-here)
+  (make-counter index 0 0 empty-queue))
 
 (define (update f counters index)
-  'your-code-here)
+  (if (null? counters)
+      counters
+      (if (equal? (counter-index (car counters)) index)
+      (cons (f (car counters)) (update f (cdr counters) index))
+      (cons (car counters) (update f (cdr counters) index))
+      )))
 
-(define tt+
-  'your-code-here)
+(define (tt+ minutes)
+  (lambda (C)
+    (match C
+    [(counter index tt et queue)
+     (struct-copy counter C [tt (+ (counter-tt C) minutes)])])))
 
-(define et+
-  'your-code-here)
+(define (et+ minutes)
+  (lambda (C)
+    (match C
+    [(counter index tt et queue)
+     (struct-copy counter C [et (+ (counter-et C) minutes)])])))
 
 (define (add-to-counter name items)     ; testată de checker
   (λ (C)                                ; nu modificați felul în care funcția își primește argumentele
-    'your-code-here))
+    (if (queue-empty? (counter-queue C))
+        (struct-copy counter C [tt (+ (counter-tt C) items)] [et (+ (counter-et C) items)] [queue (enqueue (cons name items) (counter-queue C))])
+        (struct-copy counter C [tt (+ (counter-tt C) items)] [queue (enqueue (cons name items) (counter-queue C))])
+        )
+    ))
 
-(define functie-mai-abstracta-careia-ii-veti-da-un-nume-sugestiv
-  'your-code-here)
-(define min-tt 'your-code-here)
-(define min-et 'your-code-here)
+(define (minimum-main f counters min emptyCare)
+  (cond
+    ((null? counters) min)
+    ((< (f (car counters)) (cdr min)) (if (equal? emptyCare 1)
+                                        (if (queue-empty? (counter-queue (car counters)))
+                                            (minimum-main f (cdr counters) min emptyCare)
+                                            (minimum-main f (cdr counters) (cons (counter-index (car counters)) (f (car counters))) emptyCare)
+                                         )
+                                       (minimum-main f (cdr counters) (cons (counter-index (car counters)) (f (car counters))) emptyCare)))
+    (else
+     (minimum-main f (cdr counters) min emptyCare))))
 
-(define (remove-first-from-counter C)   ; testată de checker
-  'your-code-here)
+(define (min-tt counters) (minimum-main counter-tt counters (cons 0 100000000) 0)) ; folosind funcția de mai sus
+(define (min-et counters) (minimum-main counter-et counters (cons 0 100000000) 1)) ; folosind funcția de mai sus
 
+
+(define (tt-sum queue)
+  (if (queue-empty? queue)
+      0
+  (+ (cdr (top queue)) (tt-sum (dequeue queue))))
+  )
+
+(define (remove-first-from-counter C)   ; testată de checker)
+  (cond ((queue-empty? (counter-queue C)) (struct-copy counter C [tt 0] [et 0] [queue empty-queue]))
+    ((queue-empty? (dequeue (counter-queue C))) (struct-copy counter C [tt 0] [et 0] [queue empty-queue]))
+        
+      (else (struct-copy counter C [tt (tt-sum (dequeue (counter-queue C)))] [et ( cdr (top (dequeue (counter-queue C))))] [queue (dequeue (counter-queue C))]))
+  ))
 
 ; TODO
 ; Implementați o funcție care calculează starea unei case după un număr dat de minute.
@@ -66,8 +101,18 @@
 ; Atenție: casele fără clienți nu trebuie să ajungă la timpi negativi!
 (define (pass-time-through-counter minutes)
   (λ (C)
-    'your-code-here))
-  
+  (match C
+    [(counter index tt et queue)
+     (if (< (- et minutes) 0)
+         (if (< (- tt minutes) 0)
+             (struct-copy counter C [et 0]  [tt 0] )
+             (struct-copy counter C [et 0]  [tt (- (counter-tt C) minutes)] )
+         )
+
+         (struct-copy counter C [et (- (counter-et C) minutes)]  [tt (- (counter-tt C) minutes)] )
+     )
+    ])))
+
 
 ; TODO
 ; Implementați funcția care simulează fluxul clienților pe la case.
@@ -98,6 +143,97 @@
 ; - lista caselor în starea finală (ca rezultatul din etapele 1 și 2)
 ; Obs: Pentru a contoriza ieșirile din cozi, puteți să lucrați într-o funcție ajutătoare
 ; (cu un parametru în plus față de funcția serve), pe care serve doar o apelează.
+
+(define (clients-out-list counters)
+  (if (empty? counters)
+      null
+      (if (equal? (counter-et (car counters)) 0)
+          (if (queue-empty? (counter-queue(car counters)))
+              (clients-out-list (cdr counters)) 
+              (append (list (cons (counter-index(car counters))  (car (top (counter-queue (car counters)))))) (clients-out-list (cdr counters)))   
+              )
+          (clients-out-list (cdr counters)) 
+      )
+
+  )
+)
+
+(define (get-clients-out-pass-minutes C minutes clients)
+  (match C
+    [(counter index tt et queue)
+     (if (equal? minutes 0)
+         (cons C clients)
+         (if (queue-empty? queue)
+                 (get-clients-out-pass-minutes ((pass-time-through-counter 1) C) (- minutes 1) clients)
+             (if (equal? (- et 1) 0)
+                 (if (queue-empty? (dequeue queue))
+                     (get-clients-out-pass-minutes (struct-copy counter C [et 0]  [tt 0] [queue (dequeue queue)]) (- minutes 1) (append clients (list (cons index (car (top queue))))))
+                     (get-clients-out-pass-minutes (struct-copy counter C [et (cdr (top (dequeue queue)))]  [tt (- tt 1)] [queue (dequeue queue)]) (- minutes 1) (append clients (list (cons index (car (top queue))))))
+                  )
+                 (get-clients-out-pass-minutes (struct-copy counter C [et (- et 1)]  [tt (- tt 1)]) (- minutes 1) clients)
+             
+                 )
+          )
+     )
+ ]))
+
+
+(define (my-map-counters counters minutes counters-final clients)
+  (if (empty? counters)
+      (cons counters-final clients)
+      (match (car counters)
+        [(counter index tt et queue)
+         (let*
+             (
+              (output (get-clients-out-pass-minutes (car counters) minutes '()))
+              (counter (car output))
+              (clientsX (cdr output)))
+           (my-map-counters (cdr counters) minutes (append counters-final (list counter)) (append clients clientsX)))
+       ])
+   )
+  
+)
+  
+
+
+(define (counters-tt-map counters)
+  (cond
+    ((null? counters) (list 0))
+    ((counter? counters) (list (counter-tt counters)))
+  (else (append (list (counter-tt (car counters))) (counters-tt-map (cdr counters)))))
+)
+
+
 (define (serve requests fast-counters slow-counters)
-  'your-code-here)
+  (serve-main requests fast-counters slow-counters '()))
+
+(define (serve-main requests fast-counters slow-counters clients)
+ (if (null? requests)
+      (cons clients (append fast-counters slow-counters))
+      (match (car requests)
+        [(list 'ensure average) (if (> ( / (apply + (counters-tt-map (append fast-counters slow-counters))) (- (length(counters-tt-map (append fast-counters slow-counters))) 1)) average)
+                                    (serve-main requests fast-counters (append slow-counters (list (empty-counter (length(counters-tt-map (append fast-counters slow-counters)))))) clients)
+                                    (serve-main (cdr requests) fast-counters slow-counters clients)
+                                    )]
+        [(list 'delay index minutes) (serve-main (cdr requests) (update (et+ minutes) (update (tt+ minutes) fast-counters index) index)    (update (et+ minutes) (update (tt+ minutes) slow-counters index) index) clients)]
+        [(list name n-items) (if (<= n-items ITEMS)
+                                 (serve-main (cdr requests) (update (add-to-counter name n-items) fast-counters (car (min-tt (append fast-counters slow-counters))))    (update (add-to-counter name n-items) slow-counters (car (min-tt (append fast-counters slow-counters)))) clients )
+                                 (serve-main (cdr requests) fast-counters    (update (add-to-counter name n-items) slow-counters (car (min-tt slow-counters))) clients )
+                                 )]
+        [(var minutes) (if (equal? minutes 0)
+                           (serve-main (cdr requests) fast-counters slow-counters clients)
+                           (let*
+                               (
+                                (output-fast (my-map-counters fast-counters 1 '() '()))
+                                (output-slow (my-map-counters slow-counters 1 '() '()))
+                                (output-clients (append (cdr output-fast) (cdr output-slow)))
+                                )
+                         
+                             (serve-main (cons (- minutes 1)(cdr requests)) (car output-fast) (car output-slow) (append clients output-clients))
+                             
+                        )
+                           )
+        ]
+      )
+   ))
         
