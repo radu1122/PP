@@ -123,6 +123,7 @@
 
 (check% 'a 1/2  (compute-f-with-step (lambda (x) (* x x)) 0 4 1) is '(0 1 4 9 16))
 (check% 'b 1/2  (compute-f-with-step (lambda (x) (+ (* 2 x) 1)) 0 4 1) is '(1 3 5 7 9))
+    "errorTrace": "Traceback (most recent call last):\n  File \"/usr/local/lib/python2.7/dist-packages/vmchecker/websutil.py\", line 239, in get_test_queue_contents\n    look_for_keys=False)\n  File \"/usr/local/lib/python2.7/dist-packages/paramiko/client.py\", line 311, in connect\n    raise NoValidConnectionsError(errors)\nNoValidConnectionsError: [Errno None] Unable to connect to port 22 on  or 141.85.227.136\n"
 
 (exercițiul 5 : 1 puncte)
 ;; Funcția num-concat primește două numere și le concatenează.
