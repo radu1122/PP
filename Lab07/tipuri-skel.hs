@@ -33,7 +33,7 @@ data Vector = V
   } deriving (Show, Eq)
 
 dotV :: Vector -> Vector -> Double
-dotV = undefined
+dotV (V vx1 vy1 vz1) (V vx2 vy2 vz2) = vx1 * vx2 + vy1 * vy2 + vz1 * vz2
 
 check1 :: TestData
 check1 = let 
@@ -55,7 +55,7 @@ check1 = let
 
 -}
 
-data BST a = UndefinedNode | BSTNil deriving Show
+data BST a = BSTNod a (BST a) (BST a) | BSTNil deriving Show
 
 insertElem :: (Ord a, Eq a) => BST a -> a -> BST a
 insertElem BSTNil elem = BSTNod elem BSTNil BSTNil
@@ -167,8 +167,11 @@ check2 = let root = foldl insertElem BSTNil [7, 4, 12, 2, 3, 1, 10, 15, 8]
   
 -}
 
+
 data InfBST a = Node
     { value   :: a
+    , parent  :: Maybe (InfBST a)
+    , func    :: String
     , left    :: InfBST a
     , right   :: InfBST a
     } deriving (Eq, Show)
@@ -200,6 +203,10 @@ extractPath node = case (parent node) of
     Just x  -> (value x, func node):(extractPath x)
     Nothing -> []
 
+-- extractPath node = tail $ map (\(node, f) -> (value node, f)) nodes
+--   where condition = not.isNothing.parent.fst
+--         nodes = takeWhile condition $ iterate (\(node, f) -> (fromJust $ parent node, func node)) (node, "")
+
 stopCond :: (Num a, Ord a) => a -> a -> Bool
 stopCond xf val = val > 4 * xf 
 
@@ -222,7 +229,7 @@ check3 = let bfsNodes = bfs $ completeBinaryTree 1
           , testVal "path 1 16" [(1,"g"),(4,"f"),(8,"f")] $ path 1 16
           , testVal "path 1 10" [] $ path 1 10
           ]  
-          
+               
 {-
  4. Cum ați reprezenta un arbore oarecare?
  
