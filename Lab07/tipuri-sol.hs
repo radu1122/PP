@@ -396,4 +396,11 @@ check6 = tests_ 6 $
 {-
  Helpers for testing :) You can also run check1, check2 etc independently
 -}
+myList [1..]
+
+oddList = filter odd myList
+
+show "Success"
+
 check = quickCheck False [check1, check2, check3, check4, check5, check6]
+
