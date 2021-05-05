@@ -10,6 +10,7 @@ module Basics where
 
 import ProblemState
 import Data.List
+import Data.Maybe
 
 {-
         Sinonim tip de date pentru reprezetarea unei perechi (Int, Int)
@@ -64,7 +65,7 @@ data Direction = North | South | West | East
 data Game = Game {
         targets :: [Target],
         obstacols :: [Position],
-        gateways :: [Position],
+        gateways :: [(Position, Position)],
         linesNr :: Int,
         columns :: Int,
         hunter :: Position
@@ -102,7 +103,7 @@ gameAsString game = concat (intersperse "" [(fn i j) | i <-[0.. (linesNr game) -
                                             | any (\a -> a == (i, j)) (obstacols game) = "@"
                                             | any (\a -> position a == (i, j)) (targets game) = "*"
                                             | (i, j) == hunter game = "!"
-                                            | any (\a -> a == (i, j)) (obstacols game) = "#"
+                                            | any (\a -> (fst a) == (i, j) || (snd a) == (i, j)) (gateways game) = "#"
                                             | otherwise = " "
 
 instance Show Game where
@@ -159,7 +160,17 @@ addHunter pos game = Game {
         Parametrul Position reprezintă poziția de pe hartă la care va fi adăugat Target-ul.
 -}
 addTarget :: Behavior -> Position -> Game -> Game
-addTarget  = undefined
+addTarget behav pos game = Game {
+                    targets = (targets game) ++ [Target {
+                                position = pos,
+                                behavior = behav
+                            }],
+                    obstacols = (obstacols game),
+                    gateways = (gateways game),
+                    linesNr = (linesNr game),
+                    columns = (columns game),
+                    hunter = (hunter game)
+                }
 
 {-
         *** TODO ***
@@ -170,7 +181,14 @@ addTarget  = undefined
         cele două gateway-uri interconectate printr-un canal bidirecțional.
 -}
 addGateway :: (Position, Position) -> Game -> Game
-addGateway  = undefined
+addGateway pos game = Game {
+                    targets = (targets game),
+                    obstacols = (obstacols game),
+                    gateways = (gateways game) ++ [pos],
+                    linesNr = (linesNr game),
+                    columns = (columns game),
+                    hunter = (hunter game)
+                }
 
 {-
         *** TODO ***
@@ -180,7 +198,14 @@ addGateway  = undefined
         Parametrul Position reprezintă poziția de pe hartă la care va fi adăugat obstacolul.
 -}
 addObstacle :: Position -> Game -> Game
-addObstacle  = undefined
+addObstacle pos game = Game {
+                    targets = (targets game),
+                    obstacols = (obstacols game) ++ [pos],
+                    gateways = (gateways game),
+                    linesNr = (linesNr game),
+                    columns = (columns game),
+                    hunter = (hunter game)
+                }
 
 {-
         *** TODO ***
@@ -195,7 +220,12 @@ addObstacle  = undefined
         Parametrul Position reprezintă poziția destinație.
 -}
 attemptMove :: Position -> Game -> Maybe Position
-attemptMove = undefined
+attemptMove pos game
+        | any (\a -> a == pos) (obstacols game) = Nothing
+        | (fst pos) >= (linesNr game) || (fst pos) < 0 || (snd pos) >= (columns game) || (snd pos) < 0 = Nothing
+        | any (\a -> (fst a) == pos) (gateways game) = Just (snd (fromJust(find (\a -> (fst a) == pos) (gateways game))))
+        | any (\a -> (snd a) == pos) (gateways game) = Just (fst (fromJust(find (\a -> (snd a) == pos) (gateways game))))
+        | otherwise = Just pos
 
 {-
         *** TODO ***
@@ -212,8 +242,15 @@ attemptMove = undefined
         goNorth, goSouth) sunt foarte similare, încercați să implementați o funcție
         mai generală, pe baza căreia să le definiți apoi pe acestea patru.
 -}
+myMoveFunc :: Position -> Position -> Game -> Position
+myMoveFunc oldPos newPos game = if ((attemptMove newPos game) == Nothing) then oldPos else newPos
+
 goEast :: Behavior
-goEast = undefined
+goEast = (\pos game -> Target {
+                        position = myMoveFunc pos ((fst pos), ((snd pos) + 1)) game,
+                        behavior = goEast
+                        }
+        )
 
 {-
         *** TODO ***
@@ -224,7 +261,11 @@ goEast = undefined
         pe loc.
 -}
 goWest :: Behavior
-goWest = undefined
+goWest = (\pos game -> Target {
+                        position = myMoveFunc pos ((fst pos), ((snd pos) - 1)) game,
+                        behavior = goEast
+                        }
+        )
 
 {-
         *** TODO ***
@@ -235,7 +276,11 @@ goWest = undefined
         pe loc.
 -}
 goNorth :: Behavior
-goNorth = undefined
+goNorth = (\pos game -> Target {
+                        position = myMoveFunc pos (((fst pos) - 1), (snd pos)) game,
+                        behavior = goEast
+                        }
+        )
 
 {-
         *** TODO ***
@@ -246,7 +291,11 @@ goNorth = undefined
         pe loc.
 -}
 goSouth :: Behavior
-goSouth = undefined
+goSouth = (\pos game -> Target {
+                        position = myMoveFunc pos (((fst pos) + 1), (snd pos)) game,
+                        behavior = goEast
+                        }
+        )
 
 {-
         *** TODO ***
@@ -274,8 +323,7 @@ bounce = undefined
         
 -}
 moveTargets :: Game -> Game
-moveTargets = undefined
-
++
 {-
         *** TODO ***
 
