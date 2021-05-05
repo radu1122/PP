@@ -243,12 +243,12 @@ attemptMove pos game
         mai generală, pe baza căreia să le definiți apoi pe acestea patru.
 -}
 myMoveFunc :: Position -> Position -> Game -> Position
-myMoveFunc oldPos newPos game = if ((attemptMove newPos game) == Nothing) then oldPos else newPos
+myMoveFunc oldPos newPos game = if ((attemptMove newPos game) == Nothing) then oldPos else (fromJust(attemptMove newPos game))
 
 goEast :: Behavior
 goEast = (\pos game -> Target {
-                        position = myMoveFunc pos ((fst pos), ((snd pos) + 1)) game,
-                        behavior = goEast
+                                position = myMoveFunc pos ((fst pos), ((snd pos) + 1)) game,
+                                behavior = goEast
                         }
         )
 
@@ -262,8 +262,8 @@ goEast = (\pos game -> Target {
 -}
 goWest :: Behavior
 goWest = (\pos game -> Target {
-                        position = myMoveFunc pos ((fst pos), ((snd pos) - 1)) game,
-                        behavior = goEast
+                                position = myMoveFunc pos ((fst pos), ((snd pos) - 1)) game,
+                                behavior = goWest
                         }
         )
 
@@ -277,8 +277,8 @@ goWest = (\pos game -> Target {
 -}
 goNorth :: Behavior
 goNorth = (\pos game -> Target {
-                        position = myMoveFunc pos (((fst pos) - 1), (snd pos)) game,
-                        behavior = goEast
+                                position = myMoveFunc pos (((fst pos) - 1), (snd pos)) game,
+                                behavior = goNorth
                         }
         )
 
@@ -292,8 +292,8 @@ goNorth = (\pos game -> Target {
 -}
 goSouth :: Behavior
 goSouth = (\pos game -> Target {
-                        position = myMoveFunc pos (((fst pos) + 1), (snd pos)) game,
-                        behavior = goEast
+                                position = myMoveFunc pos (((fst pos) + 1), (snd pos)) game,
+                                behavior = goSouth
                         }
         )
 
@@ -313,7 +313,30 @@ goSouth = (\pos game -> Target {
         1 pentru sud, -1 pentru nord).
 -}
 bounce :: Int -> Behavior
-bounce = undefined
+bounce param = if (param == 1) then (\pos game ->  
+                                        if ((myMoveFunc pos (((fst pos) + 1), (snd pos)) game) == pos) then
+                                                Target {
+                                                        position = myMoveFunc pos (((fst pos) - 1), (snd pos)) game,
+                                                        behavior = bounce (-1)
+                                                }
+                                        else 
+                                                Target {
+                                                        position = myMoveFunc pos (((fst pos) + 1), (snd pos)) game,
+                                                        behavior = bounce 1
+                                                }
+                                )
+                else (\pos game -> 
+                        if ((myMoveFunc pos (((fst pos) - 1), (snd pos)) game) == pos) then
+                                Target {
+                                        position = myMoveFunc pos (((fst pos) + 1), (snd pos)) game,
+                                        behavior = bounce 1
+                                }
+                        else 
+                               Target {
+                                        position = myMoveFunc pos (((fst pos) - 1), (snd pos)) game,
+                                        behavior = bounce (-1)
+                                } 
+                )
 
 {-
         *** TODO ***
@@ -323,7 +346,14 @@ bounce = undefined
         
 -}
 moveTargets :: Game -> Game
-+
+moveTargets game = Game {
+                    targets = map (\x -> (behavior x) (position x) game ) (targets game), -- TODO pos finala == cu pos iniiala si e gateway
+                    obstacols = (obstacols game),
+                    gateways = (gateways game),
+                    linesNr = (linesNr game),
+                    columns = (columns game),
+                    hunter = (hunter game)
+                } 
 {-
         *** TODO ***
 
@@ -335,7 +365,12 @@ moveTargets :: Game -> Game
         Parametrul Target reprezintă Targetul pentru care se face verificarea.
 -}
 isTargetKilled :: Position -> Target -> Bool
-isTargetKilled = undefined
+isTargetKilled pos target
+        | (fst pos) + 1 == (fst (position target)) && (snd pos) == (snd (position target)) = True
+        | (fst pos) - 1 == (fst (position target)) && (snd pos) == (snd (position target)) = True
+        | (fst pos) == (fst (position target)) && (snd pos) + 1 == (snd (position target)) = True
+        | (fst pos) == (fst (position target)) && (snd pos) - 1 == (snd (position target)) = True
+        | otherwise = False
 
 
 {-
@@ -357,16 +392,35 @@ isTargetKilled = undefined
         Dubla verificare a anihilării Target-urilor, în pașii 2 și 4, îi oferă Hunter-ului
         un avantaj în prinderea lor.
 -}
+killTargets :: Game -> Game
+killTargets game = Game {
+                    targets = filter (\x -> isTargetKilled (hunter game) x ) (targets game),
+                    obstacols = (obstacols game),
+                    gateways = (gateways game),
+                    linesNr = (linesNr game),
+                    columns = (columns game),
+                    hunter = (hunter game)
+                } 
+
 advanceGameState :: Direction -> Bool -> Game -> Game
-advanceGameState = undefined
+advanceGameState dir param game
+        | dir == North = if (param == False) then (addHunter ((fst (hunter game) - 1), (snd (hunter game))) game)
+                                else (killTargets (moveTargets (killTargets (addHunter ((fst (hunter game) - 1), (snd (hunter game))) game)) ))
+        | dir == South = if (param == False) then (addHunter ((fst (hunter game) + 1), (snd (hunter game))) game)
+                                else (killTargets (moveTargets (killTargets (addHunter ((fst (hunter game) + 1), (snd (hunter game))) game) ) ))
+        | dir == West = if (param == False) then (addHunter ((fst (hunter game)), (snd (hunter game) - 1)) game)
+                                else (killTargets (moveTargets (killTargets (addHunter ((fst (hunter game)), (snd (hunter game) - 1)) game) ) ))
+        | dir == East = if (param == False) then (addHunter ((fst (hunter game)), (snd (hunter game) + 1)) game)
+                                else (killTargets (moveTargets (killTargets (addHunter ((fst (hunter game)), (snd (hunter game) + 1)) game) ) ))
 
 {-
         ***  TODO ***
 
         Verifică dacă mai există Target-uri pe table de joc.
 -}
+
 areTargetsLeft :: Game -> Bool
-areTargetsLeft = undefined
+areTargetsLeft game = if ((length (targets game)) == 0) then False else True
 
 {-
         *** BONUS TODO ***
