@@ -21,7 +21,14 @@ import qualified Data.Set as S
     * copiii, ce vor desemna stările învecinate;
 -}
 
-data Node s a = UndefinedNode
+data Node s a = Node {
+    nodeState :: s,
+    nodeParent :: Maybe (Node s a),
+    nodeDepth :: Int,
+    nodeChildren :: [Node s a],
+    nodeHeuristic :: Float,
+    nodeAction :: Maybe a
+}
 
 {-
     *** TODO ***
@@ -29,10 +36,10 @@ data Node s a = UndefinedNode
 -}
 
 instance Eq s => Eq (Node s a) where
-    _ == _ = undefined
+    node1 == node2 = (nodeState node1) == (nodeState node2)
 
 instance Ord s => Ord (Node s a) where
-    _ <= _ = undefined
+    node1 <= node2 = (nodeState node1) <= (nodeState node2)
 
 {-
     *** TODO ***
@@ -67,7 +74,7 @@ nodeAction = undefined
 
 createStateSpace :: (ProblemState s a, Eq s) => s -> Node s a
 createStateSpace initialState = undefined -- initialNode
-
+-- pana cand is goale e true
 {-
     Funcție ce primește o coadă de priorități și întoarce o pereche
     formată din cheia cu prioritatea minimă și coada din care a fost ștearsă

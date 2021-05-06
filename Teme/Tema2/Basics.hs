@@ -246,10 +246,16 @@ myMoveFunc :: Position -> Position -> Game -> Position
 myMoveFunc oldPos newPos game = if ((attemptMove newPos game) == Nothing) then oldPos else (fromJust(attemptMove newPos game))
 
 goEast :: Behavior
-goEast = (\pos game -> Target {
-                                position = myMoveFunc pos ((fst pos), ((snd pos) + 1)) game,
-                                behavior = goEast
-                        }
+goEast = (\pos game -> if ((myMoveFunc pos ((fst pos), ((snd pos) + 1)) game) == pos) then
+                                Target {
+                                        position = myMoveFunc pos pos game,
+                                        behavior = goEast
+                                }
+                        else
+                                Target {
+                                        position = myMoveFunc pos ((fst pos), ((snd pos) + 1)) game,
+                                        behavior = goEast
+                                }
         )
 
 {-
@@ -261,10 +267,16 @@ goEast = (\pos game -> Target {
         pe loc.
 -}
 goWest :: Behavior
-goWest = (\pos game -> Target {
-                                position = myMoveFunc pos ((fst pos), ((snd pos) - 1)) game,
-                                behavior = goWest
-                        }
+goWest = (\pos game ->  if ((myMoveFunc pos ((fst pos), ((snd pos) - 1)) game) == pos) then
+                                Target {
+                                        position = myMoveFunc pos pos game,
+                                        behavior = goWest
+                                }
+                        else
+                                Target {
+                                        position = myMoveFunc pos ((fst pos), ((snd pos) - 1)) game,
+                                        behavior = goWest
+                                }
         )
 
 {-
@@ -276,7 +288,13 @@ goWest = (\pos game -> Target {
         pe loc.
 -}
 goNorth :: Behavior
-goNorth = (\pos game -> Target {
+goNorth = (\pos game -> if ((myMoveFunc pos (((fst pos) - 1), (snd pos)) game) == pos) then
+                                Target {
+                                        position = myMoveFunc pos pos game,
+                                        behavior = goNorth
+                                }
+                        else
+                        Target {
                                 position = myMoveFunc pos (((fst pos) - 1), (snd pos)) game,
                                 behavior = goNorth
                         }
@@ -291,7 +309,13 @@ goNorth = (\pos game -> Target {
         pe loc.
 -}
 goSouth :: Behavior
-goSouth = (\pos game -> Target {
+goSouth = (\pos game -> if ((myMoveFunc pos (((fst pos) + 1), (snd pos)) game) == pos) then
+                                Target {
+                                        position = myMoveFunc pos pos game,
+                                        behavior = goSouth
+                                }
+                        else
+                        Target {
                                 position = myMoveFunc pos (((fst pos) + 1), (snd pos)) game,
                                 behavior = goSouth
                         }
@@ -347,7 +371,7 @@ bounce param = if (param == 1) then (\pos game ->
 -}
 moveTargets :: Game -> Game
 moveTargets game = Game {
-                    targets = map (\x -> (behavior x) (position x) game ) (targets game), -- TODO pos finala == cu pos iniiala si e gateway
+                    targets = map (\x -> (behavior x) (position x) game ) (targets game),
                     obstacols = (obstacols game),
                     gateways = (gateways game),
                     linesNr = (linesNr game),
@@ -394,7 +418,7 @@ isTargetKilled pos target
 -}
 killTargets :: Game -> Game
 killTargets game = Game {
-                    targets = filter (\x -> isTargetKilled (hunter game) x ) (targets game),
+                    targets = filter (\x -> not(isTargetKilled (hunter game) x) ) (targets game),
                     obstacols = (obstacols game),
                     gateways = (gateways game),
                     linesNr = (linesNr game),
@@ -404,14 +428,14 @@ killTargets game = Game {
 
 advanceGameState :: Direction -> Bool -> Game -> Game
 advanceGameState dir param game
-        | dir == North = if (param == False) then (addHunter ((fst (hunter game) - 1), (snd (hunter game))) game)
-                                else (killTargets (moveTargets (killTargets (addHunter ((fst (hunter game) - 1), (snd (hunter game))) game)) ))
-        | dir == South = if (param == False) then (addHunter ((fst (hunter game) + 1), (snd (hunter game))) game)
-                                else (killTargets (moveTargets (killTargets (addHunter ((fst (hunter game) + 1), (snd (hunter game))) game) ) ))
-        | dir == West = if (param == False) then (addHunter ((fst (hunter game)), (snd (hunter game) - 1)) game)
-                                else (killTargets (moveTargets (killTargets (addHunter ((fst (hunter game)), (snd (hunter game) - 1)) game) ) ))
-        | dir == East = if (param == False) then (addHunter ((fst (hunter game)), (snd (hunter game) + 1)) game)
-                                else (killTargets (moveTargets (killTargets (addHunter ((fst (hunter game)), (snd (hunter game) + 1)) game) ) ))
+        | dir == North = if (param == False) then (addHunter (myMoveFunc (hunter game) ((fst (hunter game) - 1), (snd (hunter game))) game) game)
+                                else (killTargets (moveTargets (killTargets (addHunter (myMoveFunc (hunter game) ((fst (hunter game) - 1), (snd (hunter game))) game) game) )))
+        | dir == South = if (param == False) then (addHunter (myMoveFunc (hunter game) ((fst (hunter game) + 1), (snd (hunter game))) game) game)
+                                else (killTargets (moveTargets (killTargets (addHunter (myMoveFunc (hunter game) ((fst (hunter game) + 1), (snd (hunter game))) game)  game)) ))
+        | dir == West = if (param == False) then (addHunter (myMoveFunc (hunter game) ((fst (hunter game)), (snd (hunter game) - 1)) game) game)
+                                else (killTargets (moveTargets (killTargets (addHunter (myMoveFunc (hunter game) ((fst (hunter game)), (snd (hunter game) - 1)) game)  game)) ))
+        | dir == East = if (param == False) then (addHunter (myMoveFunc (hunter game) ((fst (hunter game)), (snd (hunter game) + 1)) game) game)
+                                else (killTargets (moveTargets (killTargets (addHunter (myMoveFunc (hunter game) ((fst (hunter game)), (snd (hunter game) + 1)) game)  game)) ))
 
 {-
         ***  TODO ***
@@ -443,7 +467,7 @@ instance ProblemState Game Direction where
                 Generează succesorii stării curente a jocului.
                 Utilizați advanceGameState, cu parametrul Bool ales corespunzător.
         -}
-        successors = undefined
+        successors g = [(North, (advanceGameState North False g))] ++ [(South, (advanceGameState South False g))] ++ [(West, (advanceGameState West False g))] ++ [(East, (advanceGameState East False g))]
 
         {-
                 *** TODO ***
@@ -451,7 +475,10 @@ instance ProblemState Game Direction where
                 Verifică dacă starea curentă este un în care Hunter-ul poate anihila
                 un Target. Puteți alege Target-ul cum doriți, în prezența mai multora.
         -}
-        isGoal  = undefined
+        isGoal game =   if ((length (filter (\x -> not(isTargetKilled (hunter game) x) ) (targets game))) < (length (targets game))) then
+                                True
+                        else
+                                False
 
         {-
                 *** TODO ***
@@ -459,8 +486,10 @@ instance ProblemState Game Direction where
                 Euristica euclidiană (vezi hEuclidian mai jos) până la Target-ul ales
                 de isGoal.
         -}
-        h = undefined
-
+        h game = (foldl min acc (map (\x -> hEuclidean (hunter game) (position x)) (targets game)))
+                where acc
+                        | not(null((targets game))) = hEuclidean (hunter game) (position (head (targets game)))
+                        | otherwise = 0
 {-
          ** NU MODIFICATI **
 -}
@@ -500,7 +529,6 @@ instance ProblemState BonusGame Direction where
                 https://wiki.haskell.org/Functor
         -}
         successors = undefined
-
         {-
                 *** BONUS TODO ***
 
