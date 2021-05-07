@@ -22,12 +22,12 @@ import qualified Data.Set as S
 -}
 
 data Node s a = Node {
-    nodeState :: s,
-    nodeParent :: Maybe (Node s a),
-    nodeDepth :: Int,
-    nodeChildren :: [Node s a],
-    nodeHeuristic :: Float,
-    nodeAction :: Maybe a
+    nodeStateX :: s,
+    nodeParentX :: Maybe (Node s a),
+    nodeDepthX :: Int,
+    nodeChildrenX :: [Node s a],
+    nodeHeuristicX :: Float,
+    nodeActionX :: Maybe a
 }
 
 {-
@@ -36,10 +36,10 @@ data Node s a = Node {
 -}
 
 instance Eq s => Eq (Node s a) where
-    node1 == node2 = (nodeState node1) == (nodeState node2)
+    node1 == node2 = (nodeStateX node1) == (nodeStateX node2)
 
 instance Ord s => Ord (Node s a) where
-    node1 <= node2 = (nodeState node1) <= (nodeState node2)
+    node1 <= node2 = (nodeStateX node1) <= (nodeStateX node2)
 
 {-
     *** TODO ***
@@ -47,22 +47,22 @@ instance Ord s => Ord (Node s a) where
 -}
 
 nodeState :: Node s a -> s
-nodeState = undefined
+nodeState node = (nodeStateX node)
 
 nodeParent :: Node s a -> Maybe (Node s a)
-nodeParent = undefined
+nodeParent node = (nodeParentX node)
 
 nodeDepth :: Node s a -> Int
-nodeDepth = undefined
+nodeDepth node = (nodeDepthX node)
 
 nodeChildren :: Node s a -> [Node s a]
-nodeChildren = undefined
+nodeChildren node = (nodeChildrenX node)
 
 nodeHeuristic :: Node s a -> Float
-nodeHeuristic = undefined
+nodeHeuristic node = (nodeHeuristicX node)
 
 nodeAction :: Node s a -> Maybe a
-nodeAction = undefined
+nodeAction node = (nodeActionX node)
 
 {-
     *** TODO ***
