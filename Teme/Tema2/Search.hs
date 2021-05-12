@@ -82,7 +82,6 @@ createStateSpaceHelper initialState action parent depth = n
 
 createStateSpace :: (ProblemState s a, Eq s) => s -> Node s a
 createStateSpace initialState = createStateSpaceHelper initialState Nothing Nothing 0
--- pana cand is goale e true
 {-
     Funcție ce primește o coadă de priorități și întoarce o pereche
     formată din cheia cu prioritatea minimă și coada din care a fost ștearsă
