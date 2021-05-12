@@ -72,8 +72,16 @@ nodeAction node = (nodeActionX node)
     departe, recursiv.
 -}
 
+createStateSpaceHelper :: (ProblemState s a, Eq s) => s -> Maybe a -> Maybe (Node s a) -> Int -> Node s a
+createStateSpaceHelper initialState action parent depth = n
+    where 
+        n 
+            | (isGoal initialState) = (Node initialState parent depth [] (h initialState) action)
+            | otherwise = (Node initialState parent depth (map function (successors initialState)) (h initialState) action)
+        function = (\p -> (createStateSpaceHelper (snd p) (Just (fst p)) (Just n) (depth + 1)))
+
 createStateSpace :: (ProblemState s a, Eq s) => s -> Node s a
-createStateSpace initialState = undefined -- initialNode
+createStateSpace initialState = createStateSpaceHelper initialState Nothing Nothing 0
 -- pana cand is goale e true
 {-
     Funcție ce primește o coadă de priorități și întoarce o pereche
@@ -95,7 +103,7 @@ deleteFindMin pq = (minK, pq')
 -}
 
 suitableSuccs :: (ProblemState s a, Ord s) => Node s a -> (S.Set s) -> [Node s a]
-suitableSuccs node visited = undefined
+suitableSuccs node visited = (filter (\n -> (S.notMember (nodeState n) visited)) (nodeChildren node))
 
 {-
     *** TODO ***
@@ -111,7 +119,9 @@ suitableSuccs node visited = undefined
 -}
 
 insertSucc :: (ProblemState s a, Ord s) => (PQ.PSQ (Node s a) Float) -> Node s a -> PQ.PSQ (Node s a) Float
-insertSucc frontier node = undefined -- newFrontier
+insertSucc frontier node = (PQ.insertWith min node cost frontier)
+    where
+        cost = (nodeHeuristic node) + (fromIntegral (nodeDepth node) :: Float)
 
 {-
     *** TODO ***
@@ -121,7 +131,7 @@ insertSucc frontier node = undefined -- newFrontier
 -}
 
 insertSuccs :: (ProblemState s a, Ord s) => (Node s a) -> (PQ.PSQ (Node s a) Float) -> (S.Set s) -> (PQ.PSQ (Node s a) Float)
-insertSuccs node frontier visited = undefined --newFrontier
+insertSuccs node frontier visited = (foldl insertSucc frontier (suitableSuccs node visited))
 
 {-
     *** TODO ***
@@ -135,7 +145,16 @@ insertSuccs node frontier visited = undefined --newFrontier
 -}
 
 astar' :: (ProblemState s a, Ord s) => (S.Set s) -> (PQ.PSQ (Node s a) Float) -> Node s a
-astar' visited frontier = undefined -- goalNode
+astar' visited frontier = goal
+    where
+        result = (deleteFindMin frontier)
+        node = (fst result)
+        newFrontier = (snd result)
+        newVisited = (S.insert (nodeState node) visited)
+        thenewFrontier = (insertSuccs node newFrontier newVisited)
+        goal
+            | (isGoal (nodeState node)) = node
+            | otherwise = (astar' newVisited thenewFrontier)
 
 {-
     *** TODO ***
@@ -146,7 +165,7 @@ astar' visited frontier = undefined -- goalNode
 -}
 
 astar :: (ProblemState s a, Ord s) => Node s a -> Node s a
-astar initialNode = undefined -- goalNode
+astar initialNode = astar' S.empty  (insertSucc PQ.empty initialNode)
 
 {-
     *** TODO ***
@@ -157,5 +176,15 @@ astar initialNode = undefined -- goalNode
     ATENȚIE: Nodul inițial este singurul exclus!
 -}
 
-extractPath :: Node s a -> [(a, s)]
-extractPath goalNode = undefined
+extractPathHelper :: (Eq s, Eq a) => Maybe (Node s a) -> [Maybe (Node s a)] -> [Maybe (Node s a)]
+extractPathHelper goalNode list
+    | goalNode == Nothing = list
+    | otherwise = extractPathHelper (nodeParent (fromJust goalNode)) (goalNode:list)
+
+extractPath :: (Eq s, Eq a) => Node s a -> [(a, s)]
+extractPath goalNode = list_of_good_pairs
+    where
+        list_of_nodes = (map fromJust (extractPathHelper (Just goalNode) []))
+        list_of_bad_pairs = (map (\n -> ((nodeAction n), (nodeState n))) list_of_nodes)
+        list_of_better_pairs = (filter (\p -> (not ((fst p) == Nothing))) list_of_bad_pairs)
+        list_of_good_pairs = (map (\p -> ((fromJust (fst p)), (snd p))) list_of_better_pairs)
