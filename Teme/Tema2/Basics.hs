@@ -475,7 +475,7 @@ instance ProblemState Game Direction where
                 Verifică dacă starea curentă este un în care Hunter-ul poate anihila
                 un Target. Puteți alege Target-ul cum doriți, în prezența mai multora.
         -}
-        isGoal game =   if ((length (filter (\x -> not(isTargetKilled (hunter game) x) ) (targets game))) < (length (targets game))) then
+        isGoal game = if ((length (filter (\x -> not(isTargetKilled (hunter game) x) ) (targets game))) < (length (targets game))) then
                                 True
                         else
                                 False
